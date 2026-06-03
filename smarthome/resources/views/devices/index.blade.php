@@ -20,7 +20,9 @@
                         <div class="bg-gray-700/50 backdrop-blur-lg border border-gray-600 rounded-lg p-4">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-lg font-semibold">
-                                    @if($device->type === 'light')
+                                    @if($device->type === 'temperature')
+                                        <i class="bi bi-thermometer text-red-400"></i>
+                                    @elseif($device->type === 'light')
                                         <i class="bi bi-lightbulb-fill text-yellow-400"></i>
                                     @elseif($device->type === 'shutter')
                                         <i class="bi bi-window-sash text-blue-400"></i>
@@ -36,7 +38,9 @@
                             <p class="text-gray-300">mqtt: {{ $device->mqttTopic }}</p>
                             {{-- Additional device details can go here --}}
                             <p>
-                                @if($device->type === 'light')
+                                @if($device->type === 'temperature')
+                                    <p class="text-gray-300">État: {{ $device->etat === 'on' ? 'Allumé' : 'Éteint' }}</p>
+                                @elseif($device->type === 'light')
                                     <p class="text-gray-300">État: {{ $device->etat === 'on' ? 'Allumé' : 'Éteint' }}</p>
                                 @elseif($device->type === 'shutter')
                                     <p class="text-gray-300">État: {{ $device->etat === 'open' ? 'Ouvert' : 'Fermé' }}</p>
@@ -45,50 +49,42 @@
                                 @endif
                             </p>
                             {{-- ajouter un bouton pour allumer/up ou eteindre/down l'appareil selon son type et son état actuel --}}
-                            @if($device->type === 'light')
-                                @if($device->etat === 'on')
-                                    <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
-                                        @csrf
-                                        <input type="hidden" name="idDevice" value="{{ $device->id }}">
-                                        <input type="hidden" name="type" value="{{ $device->type }}">
-                                        <input type="hidden" name="valeur" value="off">
-                                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition">
-                                            Éteindre
-                                        </button>
-                                    </form>
-                                @else
-                                    <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
-                                        @csrf
-                                        <input type="hidden" name="idDevice" value="{{ $device->id }}">
-                                        <input type="hidden" name="type" value="{{ $device->type }}">
-                                        <input type="hidden" name="valeur" value="on">
-                                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition">
-                                            Allumer
-                                        </button>
-                                    </form>
-                                @endif
+                            @if($device->type === 'temperature')
+                                <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
+                                    @csrf
+                                    <input type="hidden" name="idDevice" value="{{ $device->id }}">
+                                    <input type="hidden" name="type" value="{{ $device->type }}">
+                                    <input type="hidden" name="valeur" value="{{ $device->etat === 'on' ? 'off' : 'on' }}" class="w-full px-3 py-2 bg-gray-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <button type="submit" class="mt-2 w-full
+                                    {{ $device->etat === 'on' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700' }}
+                                    text-white font-semibold py-2 px-4 rounded transition">
+                                        {{ $device->etat === 'on' ? 'Eteindre' : 'Allumer' }}
+                                    </button>
+                                </form>
+                            @elseif($device->type === 'light')
+                                <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
+                                    @csrf
+                                    <input type="hidden" name="idDevice" value="{{ $device->id }}">
+                                    <input type="hidden" name="type" value="{{ $device->type }}">
+                                    <input type="hidden" name="valeur" value="{{ $device->etat === 'on' ? 'off' : 'on' }}" class="w-full px-3 py-2 bg-gray-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <button type="submit" class="mt-2 w-full
+                                    {{ $device->etat === 'on' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700' }}
+                                    text-white font-semibold py-2 px-4 rounded transition">
+                                        {{ $device->etat === 'on' ? 'Éteindre' : 'Allumer' }}
+                                    </button>
+                                </form>
                             @elseif($device->type === 'shutter')
-                                @if($device->etat === 'open')
-                                    <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
-                                        @csrf
-                                        <input type="hidden" name="idDevice" value="{{ $device->id }}">
-                                        <input type="hidden" name="type" value="{{ $device->type }}">
-                                        <input type="hidden" name="valeur" value="close">
-                                        <button type="submit" class="bg-red-600 hover:bg-red-700 text   -white font-semibold py-2 px-4 rounded transition">
-                                            Fermer
-                                        </button>
-                                    </form>
-                                @else
-                                    <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
-                                        @csrf
-                                        <input type="hidden" name="idDevice" value="{{ $device->id }}">
-                                        <input type="hidden" name="type" value="{{ $device->type }}">
-                                        <input type="hidden" name="valeur" value="open">
-                                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition">
-                                            Ouvrir
-                                        </button>
-                                    </form>
-                                @endif
+                                <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
+                                    @csrf
+                                    <input type="hidden" name="idDevice" value="{{ $device->id }}">
+                                    <input type="hidden" name="type" value="{{ $device->type }}">
+                                    <input type="hidden" name="valeur" value="{{ $device->etat === 'open' ? 'close' : 'open' }}">
+                                    <button type="submit" class="mt-2 w-full
+                                    {{ $device->etat === 'open' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700' }}
+                                    text-white font-semibold py-2 px-4 rounded transition">
+                                        {{ $device->etat === 'open' ? 'Fermer' : 'Ouvrir' }}
+                                    </button>
+                                </form>
                             @endif
                         </div>
                     @empty

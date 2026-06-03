@@ -110,73 +110,70 @@
                 </div>
             </div> --}}
             @foreach($maison->pieces as $key => $piece)
-                <div class="card relative z-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 mb-4 flex justify-between items-center gap-6 shadow-2xl hover:scale-[1.02] transition duration-300">
+                @forelse($piece->devices as $device)
+                    <div class="card relative z-10 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 mb-4 flex justify-between items-center gap-6 shadow-2xl hover:scale-[1.02] transition duration-300">
+                        <div>
+                            <p class="text-gray-300 text-sm">
+                                @if($device->type == 'temperature')
+                                    <i class="bi bi-thermometer"></i>
+                                @elseif($device->type == 'light')
+                                    <i class="bi bi-lightbulb"></i>
+                                @elseif($device->type == 'shutter')
+                                    <i class="bi bi-window"></i>
+                                @endif
+                                {{ $maison->pieces[$key]->nom }}
+                            </p>
+                        @if($device->type == 'temperature' && $device->etat)
+                            <div class="data text-2xl font-bold
+                            {{ $device->etat === 'on' ? 'text-green-500' : 'text-red-500' }}">
+                                {{ $device->etat }}
+                            </div>
+                        </div>
+                        <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
+                            @csrf
+                            <input type="hidden" name="idDevice" value="{{ $device->id }}">
+                            <input type="hidden" name="type" value="{{ $device->type }}">
+                            <input type="hidden" name="valeur" value="{{ $device->etat === 'on' ? 'off' : 'on' }}">
+                            <button type="submit">
+                                {!! $device->etat === 'on' ? '<i class="bi bi-toggle-on text-green-500 text-2xl"></i>' : '<i class="bi bi-toggle-off text-red-500 text-2xl"></i>' !!}
+                            </button>
+                        </form>
+                        @elseif($device->type == 'light' && $device->etat)
+                            <div class="data text-2xl font-bold
+                            {{ $device->etat === 'on' ? 'text-green-500' : 'text-red-500' }}">
+                                {{ $device->etat }}
+                            </div>
+                        </div>
+                        <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
+                            @csrf
+                            <input type="hidden" name="idDevice" value="{{ $device->id }}">
+                            <input type="hidden" name="type" value="{{ $device->type }}">
+                            <input type="hidden" name="valeur" value="{{ $device->etat === 'on' ? 'off' : 'on' }}">
+                            <button type="submit">
+                                {!! $device->etat === 'on' ? '<i class="bi bi-toggle-on text-green-500 text-2xl"></i>' : '<i class="bi bi-toggle-off text-red-500 text-2xl"></i>' !!}
+                            </button>
+                        </form>
+                        @elseif($device->type == 'shutter' && $device->etat)
+                            <div class="data text-2xl font-bold {{ $device->etat === 'up' ? 'text-green-500' : 'text-red-500' }}">
+                                {{ $device->etat }}
+                            </div>
+                        </div>
+                        <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
+                            @csrf
+                            <input type="hidden" name="idDevice" value="{{ $device->id }}">
+                            <input type="hidden" name="type" value="{{ $device->type }}">
+                            <input type="hidden" name="valeur" value="{{ $device->etat === 'up' ? 'down' : 'up' }}">
+                            <button type="submit">
+                                {!! $device->etat === 'up' ? '<i class="bi bi-toggle-on text-green-500 text-2xl"></i>' : '<i class="bi bi-toggle-off text-red-500 text-2xl"></i>' !!}
+                            </button>
+                        </form>
+                        @endif
+                    </div>
+                @empty
                     <div>
-                        <p class="text-gray-300 text-sm">
-                            @if($piece->devices[0]->type == 'light')
-                                <i class="bi bi-lightbulb"></i>
-                            @elseif($piece->devices[0]->type == 'shutter')
-                                <i class="bi bi-window"></i>
-                            @endif
-                            {{ $maison->pieces[$key]->nom }}</p>
-                            @if($piece->devices[0]->type == 'light' && $piece->devices[0]->etat == 'on')
-                                <div class="data text-2xl font-bold text-green-500">
-                                    ON
-                                </div>
-                            </div>
-                            <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
-                                @csrf
-                                <input type="hidden" name="idDevice" value="{{ $piece->devices[0]->id }}">
-                                <input type="hidden" name="type" value="{{ $piece->devices[0]->type }}">
-                                <input type="hidden" name="valeur" value="{{ $piece->devices[0]->etat === 'on' ? 'off' : 'on' }}">
-                                <button type="submit">
-                                    <i class="bi bi-toggle-on text-green-500 text-2xl"></i>
-                                </button>
-                            </form>
-                            @elseif($piece->devices[0]->type == 'light' && $piece->devices[0]->etat == 'off')
-                                <div class="data text-2xl font-bold text-red-500">
-                                    OFF
-                                </div>
-                            </div>
-                            <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
-                                @csrf
-                                <input type="hidden" name="idDevice" value="{{ $piece->devices[0]->id }}">
-                                <input type="hidden" name="type" value="{{ $piece->devices[0]->type }}">
-                                <input type="hidden" name="valeur" value="{{ $piece->devices[0]->etat === 'on' ? 'off' : 'on' }}">
-                                <button type="submit">
-                                    <i class="bi bi-toggle-off text-red-500 text-2xl"></i>
-                                </button>
-                            </form>
-                            @elseif($piece->devices[0]->type == 'shutter' && $piece->devices[0]->etat == 'up')
-                                <div class="data text-2xl font-bold text-green-500">
-                                    UP
-                                </div>
-                            </div>
-                            <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
-                                @csrf
-                                <input type="hidden" name="idDevice" value="{{ $piece->devices[0]->id }}">
-                                <input type="hidden" name="type" value="{{ $piece->devices[0]->type }}">
-                                <input type="hidden" name="valeur" value="{{ $piece->devices[0]->etat === 'up' ? 'down' : 'up' }}">
-                                <button type="submit">
-                                    <i class="bi bi-toggle-on text-green-500 text-2xl"></i>
-                                </button>
-                            </form>
-                            @elseif($piece->devices[0]->type == 'shutter' && $piece->devices[0]->etat == 'down')
-                                <div class="data text-2xl font-bold text-red-500">
-                                    DOWN
-                                </div>
-                            </div>
-                            <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
-                                @csrf
-                                <input type="hidden" name="idDevice" value="{{ $piece->devices[0]->id }}">
-                                <input type="hidden" name="type" value="{{ $piece->devices[0]->type }}">
-                                <input type="hidden" name="valeur" value="{{ $piece->devices[0]->etat === 'up' ? 'down' : 'up' }}">
-                                <button type="submit">
-                                    <i class="bi bi-toggle-off text-red-500 text-2xl"></i>
-                                </button>
-                            </form>
-                            @endif
-                </div>
+                        Aucun appareil n'est enregistré.
+                    </div>
+                @endforelse
             @endforeach
         </div>
     </div>

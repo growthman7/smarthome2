@@ -65,3 +65,56 @@ setTimeout(() => {
     const alert = document.querySelector('.alert');
     if (alert) alert.style.display = 'none';
 }, 3000);
+
+// Script to toggle any modal with the data-type="modal" attribute and data-modal-target and close the modal when clicking outside of it but not when clicking inside the modal content
+document.addEventListener('DOMContentLoaded', function () {
+    const modalTriggers = document.querySelectorAll('[data-modal-target]');
+    modalTriggers.forEach(trigger => {
+        trigger.addEventListener('click', function () {
+            const targetModalId = this.getAttribute('data-modal-target');
+            const targetModal = document.getElementById(targetModalId);
+            if (targetModal) {
+                targetModal.classList.remove('hidden');
+            }
+        });
+    });
+
+    // Close modal when clicking outside of it
+    const modals = document.querySelectorAll('[data-type="modal"]');
+    modals.forEach(modal => {
+        modal.addEventListener('click', function (event) {
+            if (event.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+    });
+});
+
+//Script to send formdata to the server when clicking on a button with the class "send-command" and prevent the default form submission
+document.addEventListener('DOMContentLoaded', function () {
+    const commandButtons = document.querySelectorAll('.send-command');
+    commandButtons.forEach(button => {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            const form = this.closest('form');
+            const formData = new FormData(form);
+            fetch(form.action, {
+                method: form.method,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                },
+                body: formData
+            }).then(response => {
+                // recharger la page pour voir les changements
+                location.reload();
+            })
+            .then(data => {
+                console.log('Success:', data);
+                // Optionally, you can add code here to update the UI based on the response
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        });
+    });
+});

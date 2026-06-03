@@ -7,7 +7,7 @@
     @endif
     <div class="container mx-auto py-8">
         <div class="flex items-center justify-between mb-6">
-            <h1 class="text-3xl font-bold">Détails de la Pièce</h1>
+            <h1 class="text-3xl font-bold">{{ $piece->nom }}</h1>
             {{-- ajouter un bouton  pour modal d'ajout d'un appareil dans la pièce --}}
             <button data-modal-target="addDeviceModal" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition">
                 <i class="bi bi-plus-circle"></i> Ajouter un appareil
@@ -15,14 +15,16 @@
         </div>
         <!-- Content for the room details page -->
         <div class="bg-gray-800/50 backdrop-blur-lg border border-gray-700 rounded-lg p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4">{{ $piece->nom }}</h2>
+            {{-- <h2 class="text-xl font-semibold mb-4">{{ $piece->nom }}</h2> --}}
             <p class="text-gray-300">Détails de la pièce et ses appareils connectés.</p>
             <!-- Example content for devices in the room -->
             <div class="mt-4">
                 @foreach($piece->devices as $device)
                     <div class="bg-gray-700/50 backdrop-blur-lg border border-gray-600 rounded-lg p-4 mb-4">
                         <h3 class="text-lg font-semibold">
-                            @if($device->type === 'light')
+                            @if($device->type === 'temperature')
+                                <i class="bi bi-thermometer text-red-400"></i>
+                            @elseif($device->type === 'light')
                                 <i class="bi bi-lightbulb-fill text-yellow-400"></i>
                             @elseif($device->type === 'shutter')
                                 <i class="bi bi-window-sash text-blue-400"></i>
@@ -43,14 +45,14 @@
                             @endif
                         </p>
                         {{-- ajouter un bouton pour allumer/up ou eteindre/down l'appareil selon son type et son état actuel --}}
-                        @if($device->type === 'light')
+                        @if($device->type === 'temperature')
                             @if($device->etat === 'on')
                                 <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
                                     @csrf
                                     <input type="hidden" name="idDevice" value="{{ $device->id }}">
                                     <input type="hidden" name="type" value="{{ $device->type }}">
                                     <input type="hidden" name="valeur" value="off">
-                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition">
+                                    <button type="submit" class="send-command bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition">
                                         Éteindre
                                     </button>
                                 </form>
@@ -60,7 +62,29 @@
                                     <input type="hidden" name="idDevice" value="{{ $device->id }}">
                                     <input type="hidden" name="type" value="{{ $device->type }}">
                                     <input type="hidden" name="valeur" value="on">
-                                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition">
+                                    <button type="submit" class="send-command bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition">
+                                        Allumer
+                                    </button>
+                                </form>
+                            @endif
+                        @elseif($device->type === 'light')
+                            @if($device->etat === 'on')
+                                <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
+                                    @csrf
+                                    <input type="hidden" name="idDevice" value="{{ $device->id }}">
+                                    <input type="hidden" name="type" value="{{ $device->type }}">
+                                    <input type="hidden" name="valeur" value="off">
+                                    <button type="submit" class="send-command bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition">
+                                        Éteindre
+                                    </button>
+                                </form>
+                            @else
+                                <form action="{{ route('commande.send') }}" method="POST" class="mt-2">
+                                    @csrf
+                                    <input type="hidden" name="idDevice" value="{{ $device->id }}">
+                                    <input type="hidden" name="type" value="{{ $device->type }}">
+                                    <input type="hidden" name="valeur" value="on">
+                                    <button type="submit" class="send-command bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition">
                                         Allumer
                                     </button>
                                 </form>
@@ -72,7 +96,7 @@
                                     <input type="hidden" name="idDevice" value="{{ $device->id }}">
                                     <input type="hidden" name="type" value="{{ $device->type }}">
                                     <input type="hidden" name="valeur" value="close">
-                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text   -white font-semibold py-2 px-4 rounded transition">
+                                    <button type="submit" class="send-command bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition">
                                         Fermer
                                     </button>
                                 </form>
@@ -82,7 +106,7 @@
                                     <input type="hidden" name="idDevice" value="{{ $device->id }}">
                                     <input type="hidden" name="type" value="{{ $device->type }}">
                                     <input type="hidden" name="valeur" value="open">
-                                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition">
+                                    <button type="submit" class="send-command bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition">
                                         Ouvrir
                                     </button>
                                 </form>
@@ -107,6 +131,7 @@
                 <div class="mb-4">
                     <label for="type" class="block text-gray-300 mb-2">Type d'appareil</label>
                     <select name="type" id="type" class="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="temperature">Température</option>
                         <option value="light">Lumière</option>
                         <option value="shutter">Volet</option>
                         <option value="sensor">Capteur</option>
@@ -125,29 +150,5 @@
     </div>
 @endsection
 @push('scripts')
-<script>
-    // Script to toggle any modal with the data-type="modal" attribute and data-modal-target and close the modal when clicking outside of it but not when clicking inside the modal content
-    document.addEventListener('DOMContentLoaded', function () {
-        const modalTriggers = document.querySelectorAll('[data-modal-target]');
-        modalTriggers.forEach(trigger => {
-            trigger.addEventListener('click', function () {
-                const targetModalId = this.getAttribute('data-modal-target');
-                const targetModal = document.getElementById(targetModalId);
-                if (targetModal) {
-                    targetModal.classList.remove('hidden');
-                }
-            });
-        });
-
-        // Close modal when clicking outside of it
-        const modals = document.querySelectorAll('[data-type="modal"]');
-        modals.forEach(modal => {
-            modal.addEventListener('click', function (event) {
-                if (event.target === this) {
-                    this.classList.add('hidden');
-                }
-            });
-        });
-    });
-</script>
+<script src="{{ asset('js/app.js') }}"></script>
 @endpush

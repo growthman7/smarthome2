@@ -30,14 +30,18 @@ class AuthController extends Controller
             'mdp' => 'required|string|min:8',
         ]);
         if ($validator->fails()) {
-            return response()->json([
+            return redirect()
+                    ->route('login')
+                    ->with([
                 'success' => false,
                 'errors' => $validator->errors()
             ], 422);
         }
         $user = User::where('email', $request->email)->first();
         if (!$user || !password_verify($request->mdp, $user->mdp)) {
-            return response()->json([
+            return redirect()
+                    ->route('login')        
+                    ->with([
                 'success' => false,
                 'message' => 'Identifiants invalides'
             ], 401);

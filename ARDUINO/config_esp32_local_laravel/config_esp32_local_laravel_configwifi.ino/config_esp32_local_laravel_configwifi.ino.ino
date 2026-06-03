@@ -8,7 +8,8 @@
 #include <DHT.h>
 
 Preferences preferences;
-Servo myservo;
+Servo chservo;
+Servo saservo;
 WebServer server(80);
 
 String ssid;
@@ -26,23 +27,30 @@ String deviceId;
 
 // MQTT HiveMQ
 const char* mqtt_server = "86c6b61405e14199853067d4b067f0a2.s1.eu.hivemq.cloud";
+const char* mqtt_server2 = "2e56547e75fd40c79c79d8a2415bec89.s1.eu.hivemq.cloud";
+const char* mqtt_user = "smarthome";
 const int mqtt_port = 8883;
-const char* mqtt_user = "devmarc";
 const char* mqtt_pass = "1Dev*001";
+String channel = "maison/1/etat";
 
 WiFiClientSecure espClient;
+WiFiClientSecure espClient2;
+
 PubSubClient client(espClient);
+PubSubClient client2(espClient2);
 
 //GPIO devices
 #define LED_SALON 2
 #define LED_CHAMBRE 4
-#define VOLET_PIN 5
-#define DHTPIN 16       // Broche DATA connectée à D2
+#define VOLET_PIN 17 // Servo moteur porte d'entrée principale
+#define DHTPIN 16       // Broche DATA connectée à D16
 #define DHTTYPE DHT22  // Type de capteur
+#define PIN_RELAIS 5 //Relais connectée à D5
 
 DHT dht(DHTPIN, DHTTYPE);
 
 static unsigned long lastWifiCheck = 0;
+static unsigned long lastSend = 0;
 /* ================================
    PAGE HTML
 ================================ */
@@ -225,6 +233,39 @@ bool connectWifi(){
 
 
 // FONCTIONS MQTT
+float* readDHT () {
+  static float  data[2];
+
+  data[0] = dht.readHumidity();
+  data[1] = dht.readTemperature();
+  if(isnan(data[0]) || isnan(data[1])) {
+    Serial.println("Erreur de lecture du capteur !");
+    return NULL;
+  }
+  return data;
+}
+
+//Envoi des données 
+void sendData(String topic) {
+  Serial.println("Topic: " + topic);
+
+  float* values = readDHT();
+  if(values == NULL) {
+    Serial.println("Données invalides, envoi annulé");
+    return;
+  }
+
+  //création du message JSON
+  String payload = "{";
+  payload += "\"humidite\":" + String(values[0]) + ",";
+  payload += "\"temperature\":" + String(values[1]);
+  payload += "}";
+
+  Serial.println("Payload: " + payload);
+
+  client2.publish(topic.c_str(), payload.c_str());
+}
+
 //Parser Topic
 void handleMessage(String topic, String message) {
 
@@ -260,23 +301,35 @@ void handleMessage(String topic, String message) {
   // 🪟 VOLET
   else if (type == "shutter") {
 
-    if (message == "open") {
-      myservo.write(90);
+    if (piece == "salon" && message == "open") {
+      saservo.write(90);
     } 
-    else if (message == "close") {
-      myservo.write(0);
+    else if (piece == "salon" && message == "close") {
+      saservo.write(0);
+    }
+    
+    if (piece == "chambre" && message == "open") {
+      chservo.write(90);
+    }
+    else if (piece == "chambre" && message == "close") {
+      chservo.write(0);
     }
   }
 
-  // // 🌡️ TEMP (ex: config seuil)
-  // else if (type == "temperature") {
-  //   Serial.println("Config température reçue");
-  // }
+  // 🌡️ TEMP (ex: config seuil)
+  else if (type == "temperature") {
+    if (piece == "salon") {
+      digitalWrite(PIN_RELAIS, message == "on" ? HIGH : LOW);
+    }
+
+    if (piece == "chambre") {
+      digitalWrite(PIN_RELAIS, message == "on" ? HIGH : LOW);
+    }
+  }
 }
 
 // Callback MQTT
 void callback(char* topic, byte* payload, unsigned int length) {
-
   char msg[length + 1]; // buffer C
   memcpy(msg, payload, length);
   msg[length] = '\0'; // fin de chaîne
@@ -293,10 +346,18 @@ void reconnect() {
   if (millis() - lastReconnectAttempt > 5000) {
     lastReconnectAttempt = millis();
     if (client.connect("ESP32_SMARTHOME", mqtt_user, mqtt_pass)) {
-
       // Subscribe toute la maison
       client.subscribe("maison/1/#");
+    }
+  }
+}
 
+void reconnectPublish(){
+  if (millis() - lastReconnectAttempt > 5000) {
+    lastReconnectAttempt = millis();
+    if (client2.connect("ESP32_SMARTHOME", mqtt_user, mqtt_pass)) {
+      // Subscribe toute la maison
+      Serial.println("Connected to publish server.");
     }
   }
 }
@@ -402,11 +463,13 @@ void setup(){
   //put the setup code here
   Serial.begin(115200);
   dht.begin();
-  myservo.attach(18);
+  chservo.attach(18);
+  saservo.attach(19);
 
   pinMode(LED_SALON, OUTPUT);
   pinMode(LED_CHAMBRE, OUTPUT);
   pinMode(VOLET_PIN, OUTPUT);
+  pinMode(PIN_RELAIS, OUTPUT);
 
   deviceId = WiFi.macAddress();
 
@@ -416,6 +479,7 @@ void setup(){
 
   if(wifiConfigured){
     if(connectWifi()){
+
     //  registerDevice();
       Serial.println("CONNECTED !");
     }
@@ -428,9 +492,12 @@ void setup(){
   }
 
   espClient.setInsecure();
+  espClient2.setInsecure();
 
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+  client2.setServer(mqtt_server2, mqtt_port);
+  client2.setCallback(callback);
 }
 
 void loop(){
@@ -445,7 +512,13 @@ void loop(){
   server.handleClient();
 
   if (!client.connected()) reconnect();
+  if (!client2.connected()) reconnectPublish();
+
+  if(millis() - lastSend >= 5000) {
+    sendData(channel);
+    lastSend = milis();
+  }
+
   client.loop();
-
-
+  client2.loop();
 }
